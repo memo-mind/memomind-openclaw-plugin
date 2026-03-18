@@ -2,11 +2,6 @@
 
 `@memomind/memomind-glasses` is an OpenClaw plugin that normalizes MemoMind smart-glasses control requests and dispatches them to a paired node command.
 
-For implementation details and node integration guidance, see
-[`DEVELOPER.md`](./DEVELOPER.md).
-
-For a beginner-friendly installation guide, see [`INSTALL.md`](./INSTALL.md).
-
 ## What it provides
 
 - Gateway methods:
@@ -66,51 +61,6 @@ gateway calls, and tool calls, so OpenClaw should prefer explicit requests such
 as "turn on live captions", "start recording", or "disable Do Not Disturb".
 
 ## Plugin config
-
-## Installation
-
-1. Install the plugin:
-
-```bash
-openclaw plugins install ./extensions/memomind-glasses
-```
-
-2. After installation, add MemoMind command guidance to your workspace
-   `tools.md` so OpenClaw can remember the command meanings and use the plugin
-   more reliably.
-
-Suggested `tools.md` entry:
-
-```md
-## MemoMind Smart Glasses
-
-Use `memomind_control` or `/memomind` to control the MemoMind glasses node.
-The target node command is `memomind.control`.
-
-Codes:
-- Volume: `QV`, `VU`, `VD`, `VS`
-- Brightness: `QB`, `BU`, `BD`, `BS`
-- Translation: `LT`
-- Toggles: `TP`, `ND`, `LS`, `MR`, `SLP`, `RC`, `BA`
-
-Values:
-- `VS`: `v: 0-100`
-- `BS`: `v: 0-10`
-- `LT`: `from_language`, `to_language`
-- Toggles: `v: 1` = on/start, `v: 0` = off/stop
-
-Toggle meanings:
-- `TP`: teleprompter
-- `ND`: Do Not Disturb
-- `LS`: Live Captions
-- `MR`: Meeting Minutes
-- `SLP`: Sound Leakage Protection
-- `RC`: audio recording
-- `BA`: auto brightness
-
-Prefer explicit requests like "turn on live captions", "start recording", or
-"set brightness to 7".
-```
 
 Configure under `plugins.entries.memomind-glasses.config`:
 

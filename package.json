@@ -1,6 +1,6 @@
 {
   "name": "@openclaw/memomind-glasses",
-  "version": "2026.3.14",
+  "version": "2026.3.17",
   "description": "OpenClaw MemoMind smart-glasses node control plugin",
   "type": "module",
   "files": [

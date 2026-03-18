@@ -1,0 +1,22 @@
+{
+  "name": "@openclaw/memomind-glasses",
+  "version": "2026.3.13",
+  "description": "OpenClaw MemoMind smart-glasses node control plugin",
+  "type": "module",
+  "files": [
+    "README.md",
+    "index.ts",
+    "openclaw.plugin.json",
+    "src/"
+  ],
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "install": {
+      "npmSpec": "@openclaw/memomind-glasses",
+      "localPath": "extensions/memomind-glasses",
+      "defaultChoice": "npm"
+    }
+  }
+}

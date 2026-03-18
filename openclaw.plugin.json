@@ -1,0 +1,45 @@
+{
+  "id": "memomind-glasses",
+  "name": "MemoMind Smart Glasses",
+  "description": "Normalize and dispatch MemoMind smart-glasses control requests to a paired OpenClaw node.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "defaultNodeId": {
+        "type": "string"
+      },
+      "nodeCommand": {
+        "type": "string"
+      },
+      "defaultTimeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 60000
+      },
+      "allowNodeIds": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "uiHints": {
+    "defaultNodeId": {
+      "label": "Default Node ID",
+      "help": "Used when a command or tool call omits nodeId."
+    },
+    "nodeCommand": {
+      "label": "Node Command",
+      "help": "The node command declared by the mobile app. Default: memomind.control"
+    },
+    "defaultTimeoutMs": {
+      "label": "Invoke Timeout (ms)"
+    },
+    "allowNodeIds": {
+      "label": "Allowed Node IDs",
+      "help": "Optional safety allowlist. If set, only these node ids can receive glasses commands."
+    }
+  }
+}

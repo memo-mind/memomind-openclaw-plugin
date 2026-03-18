@@ -1,6 +1,6 @@
 # MemoMind Smart Glasses Plugin
 
-`@openclaw/memomind-glasses` is an OpenClaw plugin that normalizes MemoMind smart-glasses control requests and dispatches them to a paired node command.
+`@memomind/memomind-glasses` is an OpenClaw plugin that normalizes MemoMind smart-glasses control requests and dispatches them to a paired node command.
 
 For implementation details and node integration guidance, see
 [`DEVELOPER.md`](./DEVELOPER.md).

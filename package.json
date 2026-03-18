@@ -1,6 +1,6 @@
 {
   "name": "@openclaw/memomind-glasses",
-  "version": "2026.3.13",
+  "version": "2026.3.14",
   "description": "OpenClaw MemoMind smart-glasses node control plugin",
   "type": "module",
   "files": [
@@ -18,5 +18,22 @@
       "localPath": "extensions/memomind-glasses",
       "defaultChoice": "npm"
     }
-  }
+  },
+  "main": "index.ts",
+  "scripts": {
+    "test": "npx vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/memo-mind/memomind-openclaw-plugin.git"
+  },
+  "keywords": [
+    "memomind"
+  ],
+  "author": "chen zhen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/memo-mind/memomind-openclaw-plugin/issues"
+  },
+  "homepage": "https://github.com/memo-mind/memomind-openclaw-plugin#readme"
 }

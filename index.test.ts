@@ -26,6 +26,16 @@ type RegisteredTool = {
 
 function createApiHarness() {
   const gatewayRequest = vi.fn();
+  const nodeList = vi.fn().mockResolvedValue({
+    nodes: [
+      {
+        nodeId: "phone-node",
+        connected: true,
+        commands: ["memomind.control"],
+      },
+    ],
+  });
+  const nodeInvoke = vi.fn().mockResolvedValue({ payload: null });
   const commands: OpenClawPluginCommandDefinition[] = [];
   const tools: RegisteredTool[] = [];
   const gatewayHandlers = new Map<string, GatewayRequestHandler>();
@@ -44,6 +54,10 @@ function createApiHarness() {
     runtime: {
       gateway: {
         request: gatewayRequest,
+      },
+      nodes: {
+        list: nodeList,
+        invoke: nodeInvoke,
       },
     },
     logger: {
@@ -76,8 +90,10 @@ function createApiHarness() {
   return {
     api,
     commands,
-    gatewayHandlers,
     gatewayRequest,
+    gatewayHandlers,
+    nodeInvoke,
+    nodeList,
     tool: tools[0],
   };
 }
@@ -152,15 +168,9 @@ describe("memomind smart glasses plugin", () => {
     expect(harness.tool).toBeDefined();
   });
 
-  it("routes the /memomind command through memomind.dispatch", async () => {
+  it("routes the /memomind command through runtime.nodes.invoke", async () => {
     const harness = createApiHarness();
-    harness.gatewayRequest.mockResolvedValue({
-      ok: true,
-      nodeId: "phone-node",
-      nodeCommand: "memomind.control",
-      payload: { op: "VS", v: 0 },
-      result: null,
-    });
+    harness.nodeInvoke.mockResolvedValue({ payload: { volume: 0 } });
 
     const command = harness.commands[0];
     const result = await command.handler({
@@ -171,26 +181,32 @@ describe("memomind smart glasses plugin", () => {
       args: "volume set mute",
     });
 
-    expect(harness.gatewayRequest).toHaveBeenCalledWith("memomind.dispatch", {
-      code: "VS",
-      v: "mute",
+    expect(harness.nodeList).toHaveBeenCalledWith({ connected: true });
+    expect(harness.nodeInvoke).toHaveBeenCalledWith({
+      nodeId: "phone-node",
+      command: "memomind.control",
+      params: { op: "VS", v: 0 },
+      timeoutMs: 15000,
     });
+    expect(harness.gatewayRequest).not.toHaveBeenCalled();
     expect(result.text).toContain("Sent VS");
+    expect(result.text).toContain('"volume": 0');
   });
 
-  it("routes the agent tool through memomind.dispatch", async () => {
+  it("routes the agent tool through runtime.nodes.invoke", async () => {
     const harness = createApiHarness();
-    harness.gatewayRequest.mockResolvedValue({
-      ok: true,
-      nodeId: "phone-node",
-      nodeCommand: "memomind.control",
-      payload: { op: "VU" },
-      result: { volume: 75 },
-    });
+    harness.nodeInvoke.mockResolvedValue({ payload: { volume: 75 } });
 
     const result = await harness.tool.execute("call-1", { text: "louder" });
-    expect(harness.gatewayRequest).toHaveBeenCalledWith("memomind.dispatch", { text: "louder" });
+    expect(harness.nodeInvoke).toHaveBeenCalledWith({
+      nodeId: "phone-node",
+      command: "memomind.control",
+      params: { op: "VU" },
+      timeoutMs: 15000,
+    });
+    expect(harness.gatewayRequest).not.toHaveBeenCalled();
     expect(result.content[0]?.text).toContain('"op": "VU"');
+    expect(result.content[0]?.text).toContain('"volume": 75');
   });
 
   it("normalizes and dispatches directly inside the gateway handler", async () => {
@@ -199,10 +215,7 @@ describe("memomind smart glasses plugin", () => {
     expect(handler).toBeDefined();
 
     const respond = vi.fn();
-    const invoke = vi.fn().mockResolvedValue({
-      ok: true,
-      payload: { volume: 42 },
-    });
+    harness.nodeInvoke.mockResolvedValue({ payload: { volume: 42 } });
 
     await handler?.({
       req: { type: "req", id: "1", method: "memomind.dispatch", params: {} },
@@ -210,15 +223,10 @@ describe("memomind smart glasses plugin", () => {
       client: null,
       isWebchatConnect: () => false,
       respond,
-      context: {
-        nodeRegistry: {
-          get: () => ({ commands: ["memomind.control"] }),
-          invoke,
-        },
-      },
+      context: {},
     } as unknown as GatewayRequestHandlerOptions);
 
-    expect(invoke).toHaveBeenCalledWith({
+    expect(harness.nodeInvoke).toHaveBeenCalledWith({
       command: "memomind.control",
       nodeId: "phone-node",
       params: { op: "VU" },
@@ -231,6 +239,20 @@ describe("memomind smart glasses plugin", () => {
         nodeId: "phone-node",
         payload: { op: "VU" },
       }),
+    );
+  });
+
+  it("rejects nodes that do not declare the configured command", async () => {
+    const harness = createApiHarness();
+    harness.nodeList.mockResolvedValue({
+      nodes: [{ nodeId: "phone-node", connected: true, commands: [] }],
+    });
+
+    const result = await harness.tool.execute("call-1", { text: "louder" });
+
+    expect(harness.nodeInvoke).not.toHaveBeenCalled();
+    expect(result.content[0]?.text).toContain(
+      "node does not declare the required MemoMind command: memomind.control",
     );
   });
 });

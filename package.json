@@ -1,6 +1,6 @@
 {
   "name": "@memomind/memomind-glasses",
-  "version": "2026.3.17",
+  "version": "2026.3.18",
   "description": "OpenClaw MemoMind smart-glasses node control plugin",
   "type": "module",
   "files": [
@@ -16,12 +16,24 @@
     "install": {
       "npmSpec": "@memomind/memomind-glasses",
       "localPath": "extensions/memomind-glasses",
-      "defaultChoice": "npm"
+      "defaultChoice": "npm",
+      "minHostVersion": ">=2026.7.1-2"
+    },
+    "compat": {
+      "pluginApi": ">=2026.7.1-2",
+      "minGatewayVersion": "2026.7.1-2"
+    },
+    "build": {
+      "openclawVersion": "2026.7.1-2",
+      "pluginSdkVersion": "2026.7.1-2"
     }
   },
   "main": "index.ts",
   "scripts": {
     "test": "npx vitest run"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.7.1-2"
   },
   "repository": {
     "type": "git",

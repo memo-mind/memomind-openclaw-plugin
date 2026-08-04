@@ -2,6 +2,12 @@
 
 `@memomind/memomind-glasses` is an OpenClaw plugin that normalizes MemoMind smart-glasses control requests and dispatches them to a paired node command.
 
+## Compatibility
+
+- Plugin version `2026.3.18` and later requires OpenClaw `2026.7.1-2` or later.
+- Node dispatch uses the public `api.runtime.nodes.list()` and `api.runtime.nodes.invoke()` plugin APIs.
+- The MemoMind App node must declare and handle the configured node command (default: `memomind.control`).
+
 ## What it provides
 
 - Gateway methods:

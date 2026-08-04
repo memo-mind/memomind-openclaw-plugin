@@ -106,11 +106,73 @@ function formatDispatchReply(response: DispatchResponse): string {
   return `Sent ${response.payload.op} to ${response.nodeId}.${resultText}`;
 }
 
-async function dispatchViaGateway(
+function unwrapNodeInvokeResult(result: unknown): unknown {
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    return result;
+  }
+
+  const record = result as Record<string, unknown>;
+  if ("payload" in record) {
+    return record.payload;
+  }
+  if (typeof record.payloadJSON === "string") {
+    try {
+      return JSON.parse(record.payloadJSON);
+    } catch {
+      return record.payloadJSON;
+    }
+  }
+  return result;
+}
+
+async function dispatchToNode(
   api: OpenClawPluginApi,
+  pluginConfig: PluginConfig,
   request: DispatchParams,
 ): Promise<DispatchResponse> {
-  return await api.runtime.gateway.request<DispatchResponse>("memomind.dispatch", request);
+  const payload = normalizeRequest(request);
+  const nodeId = asTrimmedString(request.nodeId) ?? pluginConfig.defaultNodeId;
+  if (!nodeId) {
+    throw new Error("nodeId is required (or configure defaultNodeId).");
+  }
+
+  if (
+    Array.isArray(pluginConfig.allowNodeIds) &&
+    pluginConfig.allowNodeIds.length > 0 &&
+    !pluginConfig.allowNodeIds.includes(nodeId)
+  ) {
+    throw new Error(`nodeId is not allowed by plugin config: ${nodeId}`);
+  }
+
+  const { nodes } = await api.runtime.nodes.list({ connected: true });
+  const node = nodes.find((entry) => entry.nodeId === nodeId);
+  if (!node) {
+    throw new Error(`node not connected: ${nodeId}`);
+  }
+
+  if (!Array.isArray(node.commands) || !node.commands.includes(pluginConfig.nodeCommand)) {
+    throw new Error(
+      `node does not declare the required MemoMind command: ${pluginConfig.nodeCommand}`,
+    );
+  }
+
+  const timeoutMs = asInteger(request.timeoutMs) ?? pluginConfig.defaultTimeoutMs;
+  const idempotencyKey = asTrimmedString(request.idempotencyKey);
+  const result = await api.runtime.nodes.invoke({
+    nodeId,
+    command: pluginConfig.nodeCommand,
+    params: payload,
+    timeoutMs,
+    ...(idempotencyKey ? { idempotencyKey } : {}),
+  });
+
+  return {
+    ok: true,
+    nodeId,
+    nodeCommand: pluginConfig.nodeCommand,
+    payload,
+    result: unwrapNodeInvokeResult(result),
+  };
 }
 
 const plugin = {
@@ -134,67 +196,9 @@ const plugin = {
 
     api.registerGatewayMethod(
       "memomind.dispatch",
-      async ({ params, respond, context }: GatewayRequestHandlerOptions) => {
+      async ({ params, respond }: GatewayRequestHandlerOptions) => {
         try {
-          const raw = params as DispatchParams;
-          const payload = normalizeRequest(raw);
-          const nodeId = asTrimmedString(raw.nodeId) ?? pluginConfig.defaultNodeId;
-          if (!nodeId) {
-            sendFailure(respond, "nodeId is required (or configure defaultNodeId).");
-            return;
-          }
-
-          if (
-            Array.isArray(pluginConfig.allowNodeIds) &&
-            pluginConfig.allowNodeIds.length > 0 &&
-            !pluginConfig.allowNodeIds.includes(nodeId)
-          ) {
-            sendFailure(respond, "nodeId is not allowed by plugin config.", { nodeId });
-            return;
-          }
-
-          const node = context.nodeRegistry.get(nodeId);
-          if (!node) {
-            sendFailure(respond, "node not connected.", { nodeId });
-            return;
-          }
-
-          if (!Array.isArray(node.commands) || !node.commands.includes(pluginConfig.nodeCommand)) {
-            sendFailure(respond, "node does not declare the required MemoMind command.", {
-              nodeId,
-              nodeCommand: pluginConfig.nodeCommand,
-              declaredCommands: node.commands ?? [],
-            });
-            return;
-          }
-
-          const timeoutMs = asInteger(raw.timeoutMs) ?? pluginConfig.defaultTimeoutMs;
-          const idempotencyKey = asTrimmedString(raw.idempotencyKey);
-          const result = await context.nodeRegistry.invoke({
-            nodeId,
-            command: pluginConfig.nodeCommand,
-            params: payload,
-            timeoutMs,
-            ...(idempotencyKey ? { idempotencyKey } : {}),
-          });
-
-          if (!result.ok) {
-            sendFailure(respond, result.error?.message ?? "node invoke failed", {
-              nodeId,
-              nodeCommand: pluginConfig.nodeCommand,
-              payload,
-              code: result.error?.code,
-            });
-            return;
-          }
-
-          respond(true, {
-            ok: true,
-            nodeId,
-            nodeCommand: pluginConfig.nodeCommand,
-            payload,
-            result: result.payload ?? null,
-          });
+          respond(true, await dispatchToNode(api, pluginConfig, params as DispatchParams));
         } catch (err) {
           sendFailure(respond, err instanceof Error ? err.message : String(err));
         }
@@ -213,7 +217,7 @@ const plugin = {
         }
 
         try {
-          const response = await dispatchViaGateway(api, parsed.request);
+          const response = await dispatchToNode(api, pluginConfig, parsed.request);
           return { text: formatDispatchReply(response) };
         } catch (err) {
           return { text: `Error: ${err instanceof Error ? err.message : String(err)}` };
@@ -229,7 +233,7 @@ const plugin = {
       parameters: TOOL_PARAMETERS,
       async execute(_toolCallId, params) {
         try {
-          const response = await dispatchViaGateway(api, params as DispatchParams);
+          const response = await dispatchToNode(api, pluginConfig, params as DispatchParams);
           return {
             content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }],
             details: response,

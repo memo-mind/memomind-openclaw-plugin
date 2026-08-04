@@ -2,6 +2,11 @@
   "id": "memomind-glasses",
   "name": "MemoMind Smart Glasses",
   "description": "Normalize and dispatch MemoMind smart-glasses control requests to a paired OpenClaw node.",
+  "contracts": {
+    "tools": [
+      "memomind_control"
+    ]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

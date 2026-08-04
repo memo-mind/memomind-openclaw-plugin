@@ -1,17 +1,18 @@
 {
   "name": "@memomind/memomind-glasses",
-  "version": "2026.3.18",
+  "version": "2026.3.19",
   "description": "OpenClaw MemoMind smart-glasses node control plugin",
   "type": "module",
   "files": [
     "README.md",
-    "index.ts",
+    "dist/",
     "openclaw.plugin.json",
-    "src/"
+    "src/",
+    "index.ts"
   ],
   "openclaw": {
     "extensions": [
-      "./index.ts"
+      "./dist/index.js"
     ],
     "install": {
       "npmSpec": "@memomind/memomind-glasses",
@@ -28,9 +29,14 @@
       "pluginSdkVersion": "2026.7.1-2"
     }
   },
-  "main": "index.ts",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "esbuild index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/index.js",
+    "prepack": "npm run build",
     "test": "npx vitest run"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1"
   },
   "peerDependencies": {
     "openclaw": ">=2026.7.1-2"
